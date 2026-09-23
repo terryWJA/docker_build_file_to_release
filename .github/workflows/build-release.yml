@@ -1,0 +1,44 @@
+name: Build Docker Image And Upload To Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    env:
+      IMAGE_NAME: node-20.20.2-playwright
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract tag name
+        id: tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -f Dockerfile_20.20.2_playwerght \
+            -t $IMAGE_NAME:${{ steps.tag.outputs.VERSION }} \
+            .
+
+      - name: Save Docker image
+        run: |
+          docker save $IMAGE_NAME:${{ steps.tag.outputs.VERSION }} | gzip > ${IMAGE_NAME}_${{ steps.tag.outputs.VERSION }}.tar.gz
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${IMAGE_NAME}_${{ steps.tag.outputs.VERSION }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
