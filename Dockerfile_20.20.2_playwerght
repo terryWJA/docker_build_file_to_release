@@ -1,0 +1,21 @@
+FROM node:20.20.2
+
+WORKDIR /workspace
+
+# 可选：如果你想用国内源，可取消注释
+# RUN npm config set registry https://registry.npmmirror.com
+
+# 先初始化一个最小 package.json
+RUN npm init -y
+
+# 安装 playwright
+RUN npm install playwright
+
+# 安装 Playwright 浏览器及系统依赖
+RUN npx playwright install --with-deps chromium
+
+# 验证
+RUN node -e "console.log(require('playwright/package.json').version)"
+RUN node -e "const { chromium } = require('playwright'); (async()=>{ const browser = await chromium.launch({headless:true,args:['--no-sandbox','--disable-setuid-sandbox']}); const page = await browser.newPage(); await page.goto('https://example.com'); console.log(await page.title()); await browser.close(); })();"
+
+CMD ["bash"]
